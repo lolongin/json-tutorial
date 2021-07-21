@@ -21,7 +21,8 @@ static int test_pass = 0;
     } while (0)
 
 #define EXPECT_EQ_INT(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%d")
-
+#define EXPECT_EQ_STRING(expect,actual,len)\
+           EXPECT_EQ_BASE(((sizeof(expect)-1) == (len)) && (memcmp(expect,actual,len)==0),expect,actual,"%s");
 #define TEST_ERROR(error, json)                      \
     do                                               \
     {                                                \
@@ -79,6 +80,9 @@ static void test_parse_invalid_value()
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "inf");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "NAN");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nan");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0123");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0x0");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0x123");
 }
 
 static void test_parse_root_not_singular()
@@ -89,7 +93,7 @@ static void test_parse_root_not_singular()
     EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
 }
 
-static void test_paese_number()
+static void test_parse_number()
 {
     TEST_NUMBER(0.0, "0");
     TEST_NUMBER(0.0, "-0");
@@ -120,15 +124,24 @@ static void test_paese_number()
     TEST_NUMBER(1.7976931348623157e+308, "1.7976931348623157e+308"); /* Max double */
     TEST_NUMBER(-1.7976931348623157e+308, "-1.7976931348623157e+308");
 }
-
+static void test_access_string(){
+    lept_value v;
+    lept_init(&v);
+    lept_set_string(&v,"",0);
+    EXPECT_EQ_STRING("",lept_get_string(&v),lept_get_string_length(&v));
+    lept_set_string(&v,"hello",5);
+    EXPECT_EQ_STRING("hello",lept_get_string(&v),lept_get_string_length(&v));
+    lept_free(&v);
+}
 static void test_parse()
 {
     test_parse_null();
     test_parse_false();
     test_parse_true();
+    test_parse_number();
     test_parse_expect_value();
     test_parse_invalid_value();
-    
+    test_access_string();
 }
 
 int main()
