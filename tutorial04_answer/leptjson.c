@@ -8,7 +8,7 @@
 #include <math.h>    /* HUGE_VAL */
 #include <stdlib.h>  /* NULL, malloc(), realloc(), free(), strtod() */
 #include <string.h>  /* memcpy() */
-
+#include <stdio.h>
 #ifndef LEPT_PARSE_STACK_INIT_SIZE
 #define LEPT_PARSE_STACK_INIT_SIZE 256
 #endif
@@ -95,12 +95,14 @@ static const char* lept_parse_hex4(const char* p, unsigned* u) {
     *u = 0;
     for (i = 0; i < 4; i++) {
         char ch = *p++;
+        printf("%c",ch);
         *u <<= 4;
         if      (ch >= '0' && ch <= '9')  *u |= ch - '0';
         else if (ch >= 'A' && ch <= 'F')  *u |= ch - ('A' - 10);
         else if (ch >= 'a' && ch <= 'f')  *u |= ch - ('a' - 10);
         else return NULL;
     }
+    printf("hex4:%x ",*u);
     return p;
 }
 
@@ -109,7 +111,9 @@ static void lept_encode_utf8(lept_context* c, unsigned u) {
         PUTC(c, u & 0xFF);
     else if (u <= 0x7FF) {
         PUTC(c, 0xC0 | ((u >> 6) & 0xFF));
+        printf("%x ",0xC0 | ((u >> 6) & 0xFF));
         PUTC(c, 0x80 | ( u       & 0x3F));
+        printf("%x\n",0x80 | ( u       & 0x3F));
     }
     else if (u <= 0xFFFF) {
         PUTC(c, 0xE0 | ((u >> 12) & 0xFF));

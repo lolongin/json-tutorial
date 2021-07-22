@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "leptjson.h"
+#include "leptjson_learn.h"
 
 static int main_ret = 0;
 static int test_count = 0;
@@ -113,12 +113,12 @@ static void test_parse_string() {
     TEST_STRING("Hello", "\"Hello\"");
     TEST_STRING("Hello\nWorld", "\"Hello\\nWorld\"");
     TEST_STRING("\" \\ / \b \f \n \r \t", "\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"");
-   // TEST_STRING("Hello\0World", "\"Hello\\u0000World\"");
-   // TEST_STRING("\x24", "\"\\u0024\"");         /* Dollar sign U+0024 */
+    TEST_STRING("Hello\0World", "\"Hello\\u0000World\"");
+   TEST_STRING("\x24", "\"\\u0024\"");         /* Dollar sign U+0024 */
     TEST_STRING("\xC2\xA2", "\"\\u00A2\"");     /* Cents sign U+00A2 */
-    //TEST_STRING("\xE2\x82\xAC", "\"\\u20AC\""); /* Euro sign U+20AC */
-    //TEST_STRING("\xF0\x9D\x84\x9E", "\"\\uD834\\uDD1E\"");  /* G clef sign U+1D11E */
-   // TEST_STRING("\xF0\x9D\x84\x9E", "\"\\ud834\\udd1e\"");  /* G clef sign U+1D11E */
+    TEST_STRING("\xE2\x82\xAC", "\"\\u20AC\""); /* Euro sign U+20AC */ 
+    TEST_STRING("\xF0\x9D\x84\x9E", "\"\\uD834\\uDD1E\"");  /* G clef sign U+1D11E */
+    TEST_STRING("\xF0\x9D\x84\x9E", "\"\\ud834\\udd1e\"");  /* G clef sign U+1D11E */
 }
 
 #define TEST_ERROR(error, json)\
@@ -149,15 +149,13 @@ static void test_parse_invalid_value() {
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "inf");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "NAN");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nan");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0123"); /* after zero should be '.' or nothing */
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0x0");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0x123");
 }
 
 static void test_parse_root_not_singular() {
     TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "null x");
-
-    /* invalid number */
-    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0123"); /* after zero should be '.' or nothing */
-    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0x0");
-    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0x123");
 }
 
 static void test_parse_number_too_big() {
