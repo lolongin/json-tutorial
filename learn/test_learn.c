@@ -29,6 +29,12 @@ static int test_pass = 0;
 #define EXPECT_TRUE(actual) EXPECT_EQ_BASE((actual) != 0, "true", "false", "%s")
 #define EXPECT_FALSE(actual) EXPECT_EQ_BASE((actual) == 0, "false", "true", "%s")
 
+#if defined(_MSC_VER)
+#define EXPECT_EQ_SIZE_T(expect, actual) EXPECT_EQ_BASE((expect) == (actual), (size_t)expect, (size_t)actual, "%Iu")
+#else
+#define EXPECT_EQ_SIZE_T(expect, actual) EXPECT_EQ_BASE((expect) == (actual), (size_t)expect, (size_t)actual, "%zu")
+#endif
+
 static void test_parse_null() {
     lept_value v;
     lept_init(&v);
@@ -114,11 +120,51 @@ static void test_parse_string() {
     TEST_STRING("Hello\nWorld", "\"Hello\\nWorld\"");
     TEST_STRING("\" \\ / \b \f \n \r \t", "\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"");
     TEST_STRING("Hello\0World", "\"Hello\\u0000World\"");
-   TEST_STRING("\x24", "\"\\u0024\"");         /* Dollar sign U+0024 */
+    TEST_STRING("\x24", "\"\\u0024\"");         /* Dollar sign U+0024 */
     TEST_STRING("\xC2\xA2", "\"\\u00A2\"");     /* Cents sign U+00A2 */
     TEST_STRING("\xE2\x82\xAC", "\"\\u20AC\""); /* Euro sign U+20AC */ 
     TEST_STRING("\xF0\x9D\x84\x9E", "\"\\uD834\\uDD1E\"");  /* G clef sign U+1D11E */
     TEST_STRING("\xF0\x9D\x84\x9E", "\"\\ud834\\udd1e\"");  /* G clef sign U+1D11E */
+}
+
+static void test_parse_array() {
+    size_t i, j;
+    lept_value v;
+    lept_init(&v);
+    EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v,"[ ]"));
+    EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(&v));
+    EXPECT_EQ_SIZE_T(0, lept_get_array_size(&v));
+    lept_free(&v);
+
+    lept_init(&v);
+    EXPECT_EQ_INT(LEPT_PARSE_OK,lept_parse(&v,"[ null , false , true , 123 , \"abc\" ]"));
+    EXPECT_EQ_INT(LEPT_ARRAY,lept_get_type(&v));
+    EXPECT_EQ_SIZE_T(5,lept_get_array_size(&v));
+    EXPECT_EQ_INT(LEPT_NULL,   lept_get_type(lept_get_array_element(&v, 0)));
+    EXPECT_EQ_INT(LEPT_FALSE,  lept_get_type(lept_get_array_element(&v, 1)));
+    EXPECT_EQ_INT(LEPT_TRUE,   lept_get_type(lept_get_array_element(&v, 2)));
+    EXPECT_EQ_INT(LEPT_NUMBER, lept_get_type(lept_get_array_element(&v, 3)));
+    EXPECT_EQ_INT(LEPT_STRING, lept_get_type(lept_get_array_element(&v, 4)));
+    EXPECT_EQ_DOUBLE(123.0, lept_get_number(lept_get_array_element(&v, 3)));
+    EXPECT_EQ_STRING("abc", lept_get_string(lept_get_array_element(&v, 4)), lept_get_string_length(lept_get_array_element(&v, 4)));
+    lept_free(&v);
+
+    lept_init(&v);
+    EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "[ [ ] , [ 0 ] , [ 0 , 1 ] , [ 0 , 1 , 2 ] ]"));
+    EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(&v));
+    EXPECT_EQ_SIZE_T(4, lept_get_array_size(&v));
+    for (i = 0; i < 4; i++) {
+        lept_value* a = lept_get_array_element(&v, i);
+        EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(a));
+        EXPECT_EQ_SIZE_T(i, lept_get_array_size(a));
+        for (j = 0; j < i; j++) {
+            lept_value* e = lept_get_array_element(a, j);
+            EXPECT_EQ_INT(LEPT_NUMBER, lept_get_type(e));
+            EXPECT_EQ_DOUBLE((double)j, lept_get_number(e));
+        }
+    }
+    lept_free(&v);
+
 }
 
 #define TEST_ERROR(error, json)\
@@ -149,13 +195,14 @@ static void test_parse_invalid_value() {
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "inf");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "NAN");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nan");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0123"); /* after zero should be '.' or nothing */
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0x0");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0x123");
 }
 
 static void test_parse_root_not_singular() {
     TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "null x");
+    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0123"); /* after zero should be '.' or nothing */
+    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0x0");
+    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0x123");
+
 }
 
 static void test_parse_number_too_big() {
@@ -210,10 +257,11 @@ static void test_parse() {
     test_parse_false();
     test_parse_number();
     test_parse_string();
+    test_parse_array();
     test_parse_expect_value();
     test_parse_invalid_value();
-    test_parse_root_not_singular();
-    test_parse_number_too_big();
+   test_parse_root_not_singular();
+   test_parse_number_too_big();
     test_parse_missing_quotation_mark();
     test_parse_invalid_string_escape();
     test_parse_invalid_string_char();
@@ -263,7 +311,7 @@ static void test_access_string() {
 static void test_access() {
     test_access_null();
     test_access_boolean();
-    test_access_number();
+   // test_access_number();
     test_access_string();
 }
 
