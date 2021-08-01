@@ -37,7 +37,8 @@ enum{
     LEPT_PARSE_MISS_COMMA_OR_SQUARE_BRACKET,
     LEPT_PARSE_MISS_COLON,
     LEPT_PARSE_MISS_KEY,
-    LEPT_PARSE_MISS_COMMA_OR_CURLY_BRACKET
+    LEPT_PARSE_MISS_COMMA_OR_CURLY_BRACKET,
+    LEPT_STRINGIFY_OK
 };
 
 #define lept_init(v) do { (v)->type = LEPT_NULL; } while(0)
@@ -67,5 +68,7 @@ size_t lept_get_object_size(const lept_value* v);
 const char* lept_get_object_key(const lept_value* v, size_t index);
 size_t lept_get_object_key_length(const lept_value* v, size_t index);
 lept_value* lept_get_object_value(const lept_value* v, size_t index);
+
+char* lept_stringify(const lept_value* v, size_t* length);
 
 #endif
